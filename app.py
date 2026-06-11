@@ -192,4 +192,21 @@ def main():
     if not check_auth(): return
 
     with st.sidebar:
-        st.markdown(f"<h2 style='color:#
+        st.markdown(f"<h2 style='color:#1e293b'>🎙️ Bamba Admin</h2>", unsafe_allow_html=True)
+        menu = st.radio("Ir a:", ["📊 Dashboard", "📋 Asistencia", "💰 Sueldos", "⚙️ Configuración"])
+        st.markdown("---")
+        if st.button("Cerrar Sesión"):
+            st.session_state.auth = False
+            st.rerun()
+
+    if menu == "📊 Dashboard": mod_dashboard()
+    elif menu == "⚙️ Configuración": mod_config()
+    elif menu == "💰 Sueldos": 
+        st.title("💰 Liquidación")
+        st.info("Módulo de sueldos automático")
+    elif menu == "📋 Asistencia":
+        st.title("📋 Asistencia")
+        st.info("Marcá quién vino a cada programa")
+
+if __name__ == "__main__":
+    main()
