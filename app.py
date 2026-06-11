@@ -319,4 +319,17 @@ def main():
     if not check_auth(): return
     
     with st.sidebar:
-        st.markdown("<h2 style='text-align:center;'>🎙️ BAMB
+        st.markdown("<h2 style='text-align:center;'>🎙️ BAMBA</h2>", unsafe_allow_html=True)
+        menu = st.radio("Secciones", ["📊 Dashboard", "📋 Asistencia", "💰 Sueldos", "⚙️ Configuración"])
+        st.write("---")
+        if st.button("🔒 Salir", use_container_width=True):
+            st.session_state.auth = False
+            st.rerun()
+
+    if menu == "📊 Dashboard": mod_dashboard()
+    elif menu == "📋 Asistencia": mod_asistencia()
+    elif menu == "💰 Sueldos": mod_sueldos()
+    elif menu == "⚙️ Configuración": mod_config()
+
+if __name__ == "__main__":
+    main()
