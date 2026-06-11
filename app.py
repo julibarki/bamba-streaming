@@ -44,7 +44,29 @@ html, body, [class*="css"], .stApp, p, span, label, input, textarea, button {
 }
 .stApp { background-color: #f4f6fb; }
 
-h1, h2, h3 { color: #1e2a4a !important; font-weight: 700 !important; letter-spacing: -0.02em; }
+h1, h2, h3, h4, h5, h6 { color: #1e2a4a !important; font-weight: 700 !important; letter-spacing: -0.02em; }
+
+/* Forzar legibilidad de textos sin importar el tema del navegador */
+div[data-testid="stWidgetLabel"] p, div[data-testid="stWidgetLabel"] label,
+.stRadio label p, .stCheckbox label p, .stToggle label p {
+    color: #3b4a6b !important; font-weight: 600 !important;
+}
+div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {
+    color: #1e2a4a !important;
+}
+div[data-testid="stCaptionContainer"] p { color: #6b7a99 !important; }
+div[data-testid="stExpander"] summary p, div[data-testid="stExpander"] summary span {
+    color: #1e2a4a !important; font-weight: 600 !important;
+}
+.stTextInput input, .stNumberInput input, .stDateInput input, .stTextArea textarea {
+    background: #ffffff !important; color: #1e2a4a !important;
+    border: 1px solid #d4dbe8 !important; border-radius: 10px !important;
+}
+.stSelectbox div[data-baseweb="select"] > div {
+    background: #ffffff !important; color: #1e2a4a !important;
+    border-color: #d4dbe8 !important; border-radius: 10px !important;
+}
+.stSelectbox div[data-baseweb="select"] span { color: #1e2a4a !important; }
 
 /* Tarjetas KPI personalizadas */
 .kpi-card {
