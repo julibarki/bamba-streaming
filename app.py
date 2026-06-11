@@ -29,6 +29,11 @@ MESES = [
 CONTRATOS = ["FIJO", "POR_PROGRAMA", "HÍBRIDO"]
 ESTADOS_EMISION = ["PROGRAMADO", "EN_VIVO", "FINALIZADO"]
 CATEGORIAS_EXTRAS = ["VIÁTICOS", "BONOS", "ADELANTOS"]
+ETIQUETAS_EXTRAS = {
+    "VIÁTICOS": "Viáticos — suma a la liquidación",
+    "BONOS": "Bono — suma a la liquidación",
+    "ADELANTOS": "Pago / Adelanto entregado — se descuenta de la liquidación",
+}
 CATEGORIAS_OPERATIVOS = ["ESTUDIO", "SERVICIOS", "MARKETING"]
 TIPOS_INGRESO = ["Sponsor", "Donante"]
 
@@ -42,31 +47,59 @@ CSS_PREMIUM = """
 html, body, [class*="css"], .stApp, p, span, label, input, textarea, button {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
-.stApp { background-color: #f4f6fb; }
+.stApp { background-color: #f4f6fb !important; }
 
-h1, h2, h3, h4, h5, h6 { color: #1e2a4a !important; font-weight: 700 !important; letter-spacing: -0.02em; }
-
-/* Forzar legibilidad de textos sin importar el tema del navegador */
-div[data-testid="stWidgetLabel"] p, div[data-testid="stWidgetLabel"] label,
-.stRadio label p, .stCheckbox label p, .stToggle label p {
-    color: #3b4a6b !important; font-weight: 600 !important;
+/* ============ LEGIBILIDAD TOTAL (a prueba de modo oscuro del navegador) ============ */
+/* Regla base: TODO el texto oscuro */
+.stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {
+    color: #1e2a4a !important; font-weight: 700 !important; letter-spacing: -0.02em;
 }
+.stApp p, .stApp span, .stApp label, .stApp li, .stApp small, .stApp strong, .stApp em {
+    color: #2b3955 !important;
+}
+/* Excepciones: textos que van en blanco sobre fondo oscuro */
+.encabezado-app h1, .encabezado-app span,
+.stButton > button p, .stButton > button span, .stButton > button,
+.stFormSubmitButton > button p, .stFormSubmitButton > button span, .stFormSubmitButton > button,
+.stTabs [aria-selected="true"] p, .stTabs [aria-selected="true"] span {
+    color: #ffffff !important;
+}
+.encabezado-app p { color: #b9c4e0 !important; }
+/* Textos secundarios */
+div[data-testid="stCaptionContainer"] p, div[data-testid="stCaptionContainer"] span {
+    color: #6b7a99 !important;
+}
+/* Inputs siempre claros */
+.stTextInput input, .stNumberInput input, .stDateInput input, .stTextArea textarea {
+    background: #ffffff !important; color: #1e2a4a !important;
+    caret-color: #1e2a4a !important;
+    border: 1px solid #d4dbe8 !important; border-radius: 10px !important;
+}
+.stTextInput input::placeholder, .stTextArea textarea::placeholder {
+    color: #9aa7c4 !important;
+}
+.stSelectbox div[data-baseweb="select"] > div,
+.stMultiSelect div[data-baseweb="select"] > div {
+    background: #ffffff !important; border-color: #d4dbe8 !important; border-radius: 10px !important;
+}
+.stSelectbox div[data-baseweb="select"] span,
+.stSelectbox div[data-baseweb="select"] div { color: #1e2a4a !important; }
+.stNumberInput button { background: #eef1f8 !important; color: #1e2a4a !important; }
+.stNumberInput button span { color: #1e2a4a !important; }
+/* Menú desplegable de los selectbox */
+div[data-baseweb="popover"] ul, div[data-baseweb="popover"] li {
+    background: #ffffff !important; color: #1e2a4a !important;
+}
+/* Alertas (warning, info, success, error) */
+div[data-testid="stAlert"] { border-radius: 12px !important; }
 div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {
     color: #1e2a4a !important;
 }
-div[data-testid="stCaptionContainer"] p { color: #6b7a99 !important; }
-div[data-testid="stExpander"] summary p, div[data-testid="stExpander"] summary span {
-    color: #1e2a4a !important; font-weight: 600 !important;
+/* Fondos de widgets que el tema oscuro pinta de negro */
+section[data-testid="stSidebar"] { background: #ffffff !important; }
+div[data-testid="stExpander"] details, div[data-testid="stExpander"] summary {
+    background: #ffffff !important;
 }
-.stTextInput input, .stNumberInput input, .stDateInput input, .stTextArea textarea {
-    background: #ffffff !important; color: #1e2a4a !important;
-    border: 1px solid #d4dbe8 !important; border-radius: 10px !important;
-}
-.stSelectbox div[data-baseweb="select"] > div {
-    background: #ffffff !important; color: #1e2a4a !important;
-    border-color: #d4dbe8 !important; border-radius: 10px !important;
-}
-.stSelectbox div[data-baseweb="select"] span { color: #1e2a4a !important; }
 
 /* Tarjetas KPI personalizadas */
 .kpi-card {
@@ -444,8 +477,14 @@ def modulo_asistencia():
 # MÓDULO 2 — GASTOS EXTRAS DEL STAFF
 # -----------------------------------------------------------------------------
 def modulo_gastos_extras():
-    st.subheader("💸 Gastos Extras del Staff")
-    st.caption("Viáticos y bonos **suman** a la liquidación. Los adelantos **se descuentan** del total a pagar del mes.")
+    st.subheader("💸 Gastos Extras y Pagos al Staff")
+    st.info(
+        "💡 **¿Cómo funciona?** Acá registrás cualquier plata asociada a una persona del staff:\n\n"
+        "- **Viáticos** y **Bonos**: suman a su liquidación del mes.\n"
+        "- **Pago / Adelanto**: plata que **ya le entregaste** (ej: le pagaste a un conductor "
+        "durante el mes). Se descuenta de su «Total a Pagar» en el Tablero Financiero, "
+        "así siempre ves cuánto le falta cobrar a cada uno."
+    )
 
     df_staff = consultar(
         "SELECT id, nombre, rol FROM staff WHERE activo = TRUE ORDER BY nombre"
@@ -464,7 +503,10 @@ def modulo_gastos_extras():
                 options=list(nombres.keys()),
                 format_func=lambda x: nombres[x],
             )
-            categoria = st.selectbox("Categoría", CATEGORIAS_EXTRAS)
+            categoria = st.selectbox(
+                "Categoría", CATEGORIAS_EXTRAS,
+                format_func=lambda c: ETIQUETAS_EXTRAS[c],
+            )
         with col2:
             monto = st.number_input("Monto (ARS)", min_value=0.0, step=1000.0, format="%.2f")
             fecha_gasto = st.date_input("Fecha", value=date.today(), format="DD/MM/YYYY")
@@ -743,85 +785,17 @@ def modulo_configuracion():
 
     # ---------------- STAFF ----------------
     with tab_staff:
-        st.markdown("##### ➕ Alta de nuevo miembro del staff")
-        with st.form("formulario_alta_staff", clear_on_submit=True):
-            c1, c2 = st.columns(2)
-            with c1:
-                nombre_nuevo = st.text_input("Nombre y apellido")
-                rol_nuevo = st.text_input("Rol", placeholder="Ej: Conductor, Productora, Editor")
-                contrato_nuevo = st.selectbox("Tipo de contrato", CONTRATOS, index=1)
-            with c2:
-                sueldo_nuevo = st.number_input("Sueldo base mensual (ARS)", min_value=0.0, step=10000.0, format="%.2f")
-                pago_programa_nuevo = st.number_input("Pago por programa asistido (ARS)", min_value=0.0, step=1000.0, format="%.2f")
-            alta_ok = st.form_submit_button("➕ Dar de alta", use_container_width=True)
-        if alta_ok:
-            if not nombre_nuevo.strip() or not rol_nuevo.strip():
-                st.error("❌ Nombre y rol son obligatorios.")
-            else:
-                ejecutar(
-                    """
-                    INSERT INTO staff (nombre, rol, tipo_contrato, sueldo_base, pago_por_programa)
-                    VALUES (%s, %s, %s, %s, %s)
-                    """,
-                    (nombre_nuevo.strip(), rol_nuevo.strip(), contrato_nuevo, sueldo_nuevo, pago_programa_nuevo),
-                )
-                st.success(f"✅ {nombre_nuevo.strip()} fue dado de alta correctamente.")
-                st.rerun()
-
-        st.markdown("##### ✏️ Editar miembro existente")
         df_todo_staff = consultar(
             """
             SELECT id, nombre, rol, tipo_contrato, sueldo_base, pago_por_programa, activo
             FROM staff ORDER BY activo DESC, nombre
             """
         )
-        if df_todo_staff.empty:
-            st.info("Todavía no hay staff cargado.")
-        else:
-            etiquetas_staff = {
-                int(f["id"]): f"{f['nombre']} — {f['rol']}" + ("" if f["activo"] else " (INACTIVO)")
-                for _, f in df_todo_staff.iterrows()
-            }
-            id_editar = st.selectbox(
-                "Seleccioná a quién editar",
-                options=list(etiquetas_staff.keys()),
-                format_func=lambda x: etiquetas_staff[x],
-            )
-            fila = df_todo_staff[df_todo_staff["id"] == id_editar].iloc[0]
-            with st.form("formulario_editar_staff"):
-                c1, c2 = st.columns(2)
-                with c1:
-                    nombre_ed = st.text_input("Nombre y apellido", value=fila["nombre"])
-                    rol_ed = st.text_input("Rol", value=fila["rol"])
-                    contrato_ed = st.selectbox(
-                        "Tipo de contrato", CONTRATOS,
-                        index=CONTRATOS.index(fila["tipo_contrato"]),
-                    )
-                with c2:
-                    sueldo_ed = st.number_input(
-                        "Sueldo base mensual (ARS)", min_value=0.0, step=10000.0,
-                        value=float(fila["sueldo_base"]), format="%.2f",
-                    )
-                    pago_ed = st.number_input(
-                        "Pago por programa asistido (ARS)", min_value=0.0, step=1000.0,
-                        value=float(fila["pago_por_programa"]), format="%.2f",
-                    )
-                    activo_ed = st.toggle("Miembro activo", value=bool(fila["activo"]))
-                editar_ok = st.form_submit_button("💾 Guardar cambios", use_container_width=True)
-            if editar_ok:
-                ejecutar(
-                    """
-                    UPDATE staff
-                    SET nombre = %s, rol = %s, tipo_contrato = %s,
-                        sueldo_base = %s, pago_por_programa = %s, activo = %s
-                    WHERE id = %s
-                    """,
-                    (nombre_ed.strip(), rol_ed.strip(), contrato_ed, sueldo_ed, pago_ed, activo_ed, id_editar),
-                )
-                st.success("✅ Datos del miembro actualizados correctamente.")
-                st.rerun()
 
-            st.markdown("##### 📋 Plantel completo")
+        if df_todo_staff.empty:
+            st.info("👋 **Empezá por acá**: dá de alta al primer miembro del staff con el formulario de abajo.")
+        else:
+            st.markdown("##### 📋 Plantel actual")
             df_mostrar = df_todo_staff.copy()
             df_mostrar["sueldo_base"] = df_mostrar["sueldo_base"].astype(float).map(formato_ars)
             df_mostrar["pago_por_programa"] = df_mostrar["pago_por_programa"].astype(float).map(formato_ars)
@@ -830,8 +804,97 @@ def modulo_configuracion():
             df_mostrar.columns = ["Nombre", "Rol", "Contrato", "Sueldo Base", "Pago por Programa", "Estado"]
             st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
 
+        with st.expander("➕ Dar de alta un nuevo miembro", expanded=bool(df_todo_staff.empty)):
+            with st.form("formulario_alta_staff", clear_on_submit=True):
+                c1, c2 = st.columns(2)
+                with c1:
+                    nombre_nuevo = st.text_input("Nombre y apellido")
+                    rol_nuevo = st.text_input("Rol", placeholder="Ej: Conductor, Productora, Editor")
+                    contrato_nuevo = st.selectbox(
+                        "Tipo de contrato", CONTRATOS, index=1,
+                        help="FIJO: cobra solo sueldo base · POR_PROGRAMA: cobra solo por emisión asistida · HÍBRIDO: ambos.",
+                    )
+                with c2:
+                    sueldo_nuevo = st.number_input(
+                        "Sueldo base mensual (ARS)", min_value=0.0, step=10000.0, format="%.2f",
+                        help="Monto fijo por mes. Dejalo en 0 si la persona cobra únicamente por programa.",
+                    )
+                    pago_programa_nuevo = st.number_input(
+                        "Pago por programa asistido (ARS)", min_value=0.0, step=1000.0, format="%.2f",
+                        help="Lo que cobra por cada emisión FINALIZADA en la que estuvo presente.",
+                    )
+                alta_ok = st.form_submit_button("➕ Dar de alta", use_container_width=True)
+            if alta_ok:
+                if not nombre_nuevo.strip() or not rol_nuevo.strip():
+                    st.error("❌ Nombre y rol son obligatorios.")
+                else:
+                    ejecutar(
+                        """
+                        INSERT INTO staff (nombre, rol, tipo_contrato, sueldo_base, pago_por_programa)
+                        VALUES (%s, %s, %s, %s, %s)
+                        """,
+                        (nombre_nuevo.strip(), rol_nuevo.strip(), contrato_nuevo, sueldo_nuevo, pago_programa_nuevo),
+                    )
+                    st.success(f"✅ {nombre_nuevo.strip()} fue dado de alta correctamente.")
+                    st.rerun()
+
+        if not df_todo_staff.empty:
+            with st.expander("✏️ Editar o dar de baja un miembro"):
+                etiquetas_staff = {
+                    int(f["id"]): f"{f['nombre']} — {f['rol']}" + ("" if f["activo"] else " (INACTIVO)")
+                    for _, f in df_todo_staff.iterrows()
+                }
+                id_editar = st.selectbox(
+                    "Seleccioná a quién editar",
+                    options=list(etiquetas_staff.keys()),
+                    format_func=lambda x: etiquetas_staff[x],
+                )
+                fila = df_todo_staff[df_todo_staff["id"] == id_editar].iloc[0]
+                with st.form("formulario_editar_staff"):
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        nombre_ed = st.text_input("Nombre y apellido", value=fila["nombre"])
+                        rol_ed = st.text_input("Rol", value=fila["rol"])
+                        contrato_ed = st.selectbox(
+                            "Tipo de contrato", CONTRATOS,
+                            index=CONTRATOS.index(fila["tipo_contrato"]),
+                            help="FIJO: cobra solo sueldo base · POR_PROGRAMA: cobra solo por emisión asistida · HÍBRIDO: ambos.",
+                        )
+                    with c2:
+                        sueldo_ed = st.number_input(
+                            "Sueldo base mensual (ARS)", min_value=0.0, step=10000.0,
+                            value=float(fila["sueldo_base"]), format="%.2f",
+                        )
+                        pago_ed = st.number_input(
+                            "Pago por programa asistido (ARS)", min_value=0.0, step=1000.0,
+                            value=float(fila["pago_por_programa"]), format="%.2f",
+                        )
+                        activo_ed = st.toggle(
+                            "Miembro activo", value=bool(fila["activo"]),
+                            help="Desactivalo para darlo de baja sin perder su historial de asistencia y pagos.",
+                        )
+                    editar_ok = st.form_submit_button("💾 Guardar cambios", use_container_width=True)
+                if editar_ok:
+                    ejecutar(
+                        """
+                        UPDATE staff
+                        SET nombre = %s, rol = %s, tipo_contrato = %s,
+                            sueldo_base = %s, pago_por_programa = %s, activo = %s
+                        WHERE id = %s
+                        """,
+                        (nombre_ed.strip(), rol_ed.strip(), contrato_ed, sueldo_ed, pago_ed, activo_ed, id_editar),
+                    )
+                    st.success("✅ Datos del miembro actualizados correctamente.")
+                    st.rerun()
+
     # ---------------- SPONSORS ----------------
     with tab_sponsors:
+        st.info(
+            "💡 **¿Cómo funciona?** Cada vez que entra plata al programa, la registrás acá con su fecha. "
+            "**Sponsor** = empresa que paga por publicidad o auspicio. **Donante** = aporte voluntario "
+            "(ej: un oyente o colaborador). Ambos suman al «Total Ingresos» del mes en el Tablero Financiero. "
+            "Si un sponsor paga todos los meses, registrá un ingreso por cada mes."
+        )
         st.markdown("##### ➕ Registrar ingreso de Sponsor o Donante")
         with st.form("formulario_sponsor", clear_on_submit=True):
             c1, c2 = st.columns(2)
