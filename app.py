@@ -7,21 +7,90 @@ import hmac
 import plotly.express as px
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Bamba Admin Pro", page_icon="🎙️", layout="wide")
+st.set_page_config(
+    page_title="Bamba Admin",
+    page_icon="🎙️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# --- CSS DEEP DARK SaaS UI ---
+# --- CSS MINIMALISTA PREMIUM ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    .stApp { background-color: #0f172a !important; font-family: 'Inter', sans-serif; }
-    label, p, [data-testid="stMetricLabel"] p { color: #94a3b8 !important; font-size: 0.9rem !important; }
-    h1, h2, h3, h4 { color: #ffffff !important; font-weight: 700 !important; }
-    div[data-baseweb="input"], div[data-baseweb="select"], .stNumberInput div { background-color: #1e293b !important; border: 1px solid #334155 !important; border-radius: 10px !important; }
-    input { color: #f1f5f9 !important; }
-    .stButton > button { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important; color: white !important; border-radius: 12px !important; font-weight: 600 !important; width: 100%; }
-    div[data-testid="stMetric"] { background-color: #1e293b !important; border: 1px solid #334155 !important; border-radius: 16px !important; }
-    [data-testid="stMetricValue"] div { color: #ffffff !important; font-weight: 700 !important; }
-    .staff-card { border: 1px solid #334155; background-color: #1e293b; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 10px; }
+    
+    /* Variables y Reset */
+    :root {
+        --indigo: #6366f1;
+        --slate-900: #0f172a;
+        --slate-800: #1e293b;
+        --slate-700: #334155;
+        --slate-400: #94a3b8;
+        --emerald: #10b981;
+    }
+
+    .stApp { background-color: var(--slate-900) !important; font-family: 'Inter', sans-serif; }
+    
+    /* Tipografía */
+    h1, h2, h3, h4 { color: #ffffff !important; font-weight: 700 !important; letter-spacing: -0.02em; }
+    p, label, [data-testid="stMetricLabel"] p { color: var(--slate-400) !important; font-weight: 400; }
+
+    /* Cards Minimalistas */
+    div[data-testid="stMetric"], div[data-testid="stForm"], div.stExpander, .stDataFrame {
+        background-color: var(--slate-800) !important;
+        border: 1px solid var(--slate-700) !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+        box-shadow: none !important;
+    }
+
+    /* Botones de Acción */
+    .stButton > button {
+        background: var(--indigo) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 0.6rem 1.2rem !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease;
+    }
+    .stButton > button:hover { transform: translateY(-1px); opacity: 0.9; }
+
+    /* Estilo de la Consola de Asistencia (Grid Minimalista) */
+    .att-card {
+        padding: 20px;
+        border-radius: 14px;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 1px solid var(--slate-700);
+        margin-bottom: 15px;
+    }
+    .att-card.present {
+        border-color: var(--indigo);
+        background-color: rgba(99, 102, 241, 0.1);
+    }
+    .att-name { color: white; font-weight: 600; font-size: 1.1rem; margin-bottom: 4px; }
+    .att-role { color: var(--slate-400); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Tarjetas de Sueldo */
+    .salary-card {
+        background: var(--slate-800);
+        padding: 24px;
+        border-radius: 16px;
+        border-left: 4px solid var(--slate-700);
+        margin-bottom: 12px;
+    }
+    .salary-card.pending { border-left-color: var(--indigo); }
+    .salary-total { font-size: 1.8rem; font-weight: 700; color: white; }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] { background-color: #0b0f1a !important; border-right: 1px solid var(--slate-700); }
+    
+    /* Inputs */
+    div[data-baseweb="input"], div[data-baseweb="select"] {
+        background-color: var(--slate-900) !important;
+        border-radius: 10px !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -42,116 +111,102 @@ def run_query(query, params=None, is_select=True):
             conn.close()
             return True
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error DB: {e}")
         return pd.DataFrame()
-
-def init_db():
-    ddl = """
-    CREATE TABLE IF NOT EXISTS staff (
-        id SERIAL PRIMARY KEY, nombre TEXT, rol TEXT, sueldo_base NUMERIC DEFAULT 0, pago_por_programa NUMERIC DEFAULT 0, activo BOOLEAN DEFAULT TRUE
-    );
-    CREATE TABLE IF NOT EXISTS emisiones (
-        id SERIAL PRIMARY KEY, fecha DATE, titulo_episodio TEXT, estado TEXT, UNIQUE(fecha, titulo_episodio)
-    );
-    CREATE TABLE IF NOT EXISTS asistencia (
-        staff_id INTEGER REFERENCES staff(id), emision_id INTEGER REFERENCES emisiones(id), presente BOOLEAN, PRIMARY KEY (staff_id, emision_id)
-    );
-    CREATE TABLE IF NOT EXISTS gastos_extras (
-        id SERIAL PRIMARY KEY, staff_id INTEGER REFERENCES staff(id), monto NUMERIC, fecha DATE, categoria TEXT
-    );
-    CREATE TABLE IF NOT EXISTS ingresos_sponsors (
-        id SERIAL PRIMARY KEY, nombre_empresa TEXT, tipo TEXT, monto NUMERIC, fecha DATE
-    );
-    CREATE TABLE IF NOT EXISTS gastos_operativos (
-        id SERIAL PRIMARY KEY, monto NUMERIC, fecha DATE, descripcion TEXT, categoria TEXT
-    );
-    CREATE TABLE IF NOT EXISTS pagos_sueldos (
-        id SERIAL PRIMARY KEY, staff_id INTEGER REFERENCES staff(id), mes INTEGER, anio INTEGER, monto_pagado NUMERIC, fecha_pago DATE, UNIQUE(staff_id, mes, anio)
-    );
-    """
-    run_query(ddl, is_select=False)
 
 # --- SEGURIDAD ---
 def check_auth():
     if "auth" not in st.session_state: st.session_state.auth = False
     if not st.session_state.auth:
-        c1, c2, c3 = st.columns([1,1.2,1])
+        _, c2, _ = st.columns([1,1.2,1])
         with c2:
-            st.markdown("<br><br><h1 style='text-align:center;'>🎙️ BAMBA ADMIN</h1>", unsafe_allow_html=True)
-            pw = st.text_input("Master Password", type="password")
-            if st.button("Ingresar"):
+            st.markdown("<br><br><h1 style='text-align:center;'>🎙️ BAMBA</h1>", unsafe_allow_html=True)
+            pw = st.text_input("Clave", type="password")
+            if st.button("Ingresar", use_container_width=True):
                 if hmac.compare_digest(pw, st.secrets["MASTER_PASSWORD"]):
                     st.session_state.auth = True
                     st.rerun()
-                else: st.error("❌ Clave incorrecta")
+                else: st.error("Incorrecta")
         return False
     return True
 
-# --- MODULO DASHBOARD ---
+# --- MODULO 1: DASHBOARD ---
 def mod_dashboard():
-    st.markdown("<h1>📊 Dashboard General</h1>", unsafe_allow_html=True)
+    st.markdown("<h2>📊 Dashboard</h2>", unsafe_allow_html=True)
     hoy = date.today()
-    c1, c2 = st.columns([1, 4])
+    c1, c2, _ = st.columns([1, 1, 2])
     mes = c1.selectbox("Mes", range(1, 13), index=hoy.month-1)
-    anio = c1.selectbox("Año", [2024, 2025, 2026], index=0)
+    anio = c2.selectbox("Año", [2024, 2025, 2026], index=0)
 
+    # Queries resumidas
     ing_df = run_query("SELECT SUM(monto) as t FROM ingresos_sponsors WHERE EXTRACT(MONTH FROM fecha)=%s AND EXTRACT(YEAR FROM fecha)=%s", (mes, anio))
     gas_df = run_query("SELECT SUM(monto) as t FROM gastos_operativos WHERE EXTRACT(MONTH FROM fecha)=%s AND EXTRACT(YEAR FROM fecha)=%s", (mes, anio))
-    nom_df = run_query("SELECT SUM(monto_pagado) as t FROM pagos_sueldos WHERE mes=%s AND anio=%s", (mes, anio))
+    pay_df = run_query("SELECT SUM(monto_pagado) as t FROM pagos_sueldos WHERE mes=%s AND anio=%s", (mes, anio))
 
-    total_in = float(ing_df['t'][0] or 0)
-    total_gas = float(gas_df['t'][0] or 0)
-    total_nom = float(nom_df['t'][0] or 0) # Lo realmente pagado
+    t_in = float(ing_df['t'][0] or 0)
+    t_ga = float(gas_df['t'][0] or 0)
+    t_pa = float(pay_df['t'][0] or 0)
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Ingresos Cobrados", format_ars(total_in))
-    m2.metric("Gastos Operativos", format_ars(total_gas))
-    m3.metric("Nómina Pagada", format_ars(total_nom))
-    m4.metric("Caja Real", format_ars(total_in - total_gas - total_nom))
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Ingresos", format_ars(t_in))
+    m2.metric("Egresos (Op + Nom)", format_ars(t_ga + t_pa))
+    m3.metric("Caja Neta", format_ars(t_in - t_ga - t_pa))
 
-# --- MODULO ASISTENCIA ---
+# --- MODULO 2: ASISTENCIA (MINIMALISTA) ---
 def mod_asistencia():
-    st.markdown("<h1>📋 Consola de Asistencia</h1>", unsafe_allow_html=True)
+    st.markdown("<h2>📋 Asistencia</h2>", unsafe_allow_html=True)
+    
+    # Selector de Emisión Ultra-limpio
     em_df = run_query("SELECT id, fecha, titulo_episodio, estado FROM emisiones ORDER BY fecha DESC LIMIT 10")
     if em_df.empty:
-        st.warning("Cargá una emisión en Configuración.")
+        st.info("Carga una emisión en Configuración para empezar.")
         return
     
-    opcs = {r['id']: f"{r['fecha']} — {r['titulo_episodio']} ({r['estado']})" for _, r in em_df.iterrows()}
-    eid = st.selectbox("Seleccionar Emisión:", options=opcs.keys(), format_func=lambda x: opcs[x])
+    opcs = {r['id']: f"{r['fecha'].strftime('%d/%m')} — {r['titulo_episodio']}" for _, r in em_df.iterrows()}
+    eid = st.selectbox("Seleccionar Programa", options=opcs.keys(), format_func=lambda x: opcs[x])
+    
+    st.write("##")
     
     staff = run_query("SELECT id, nombre, rol FROM staff WHERE activo = TRUE ORDER BY nombre ASC")
     asist_actual = run_query("SELECT staff_id FROM asistencia WHERE emision_id = %s AND presente = TRUE", (eid,))
     list_asist = asist_actual['staff_id'].tolist() if not asist_actual.empty else []
 
+    # Grid de tarjetas
     updates = []
-    cols = st.columns(4)
-    for i, (_, s) in enumerate(staff.iterrows()):
-        with cols[i % 4]:
-            is_p = s['id'] in list_asist
-            st.markdown(f"""<div class="staff-card" style="border-color: {'#6366f1' if is_p else '#334155'};">
-                <div style="color: white; font-weight: 700;">{s['nombre']}</div>
-                <div style="color: #94a3b8; font-size: 0.8rem;">{s['rol']}</div>
-            </div>""", unsafe_allow_html=True)
-            pres = st.toggle("Presente", value=is_p, key=f"t_{eid}_{s['id']}", label_visibility="collapsed")
-            updates.append((s['id'], pres))
+    n_cols = 4
+    for i in range(0, len(staff), n_cols):
+        cols = st.columns(n_cols)
+        for j, (_, s) in enumerate(staff.iloc[i:i+n_cols].iterrows()):
+            with cols[j]:
+                is_p = s['id'] in list_asist
+                # Card visual
+                st.markdown(f"""
+                    <div class="att-card {'present' if is_p else ''}">
+                        <div class="att-name">{s['nombre']}</div>
+                        <div class="att-role">{s['rol']}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                # Switch de acción
+                pres = st.toggle("Presente", value=is_p, key=f"att_{eid}_{s['id']}", label_visibility="collapsed")
+                updates.append((s['id'], pres))
 
-    if st.button("💾 GUARDAR CAMBIOS", type="primary"):
+    st.write("##")
+    if st.button("💾 Guardar Presentismo", use_container_width=True):
         for sid, p in updates:
             run_query("INSERT INTO asistencia (staff_id, emision_id, presente) VALUES (%s, %s, %s) ON CONFLICT (staff_id, emision_id) DO UPDATE SET presente = EXCLUDED.presente", (sid, eid, p), is_select=False)
-        st.success("Asistencia guardada.")
+        st.success("Asistencia actualizada")
 
-# --- MODULO SUELDOS (REDISEÑADO) ---
+# --- MODULO 3: SUELDOS (CLEAN VOUCHERS) ---
 def mod_sueldos():
-    st.markdown("<h1>💰 Gestión de Pagos (Sueldos)</h1>", unsafe_allow_html=True)
+    st.markdown("<h2>💰 Liquidación</h2>", unsafe_allow_html=True)
     
-    c1, c2 = st.columns([1, 4])
+    c1, c2, _ = st.columns([1, 1, 2])
     mes = c1.selectbox("Mes", range(1, 13), index=date.today().month-1)
     anio = c2.selectbox("Año", [2024, 2025, 2026], index=0)
 
-    tab_pendientes, tab_historial = st.tabs(["⏳ Pendientes de Pago", "✅ Historial de Pagos"])
+    t_pend, t_hist = st.tabs(["Pendientes", "Historial"])
 
-    with tab_pendientes:
+    with t_pend:
         query = """
             SELECT 
                 s.id as staff_id, s.nombre, s.rol,
@@ -168,95 +223,100 @@ def mod_sueldos():
         df = run_query(query, (mes, anio, mes, anio, mes, anio, mes, anio))
 
         if df.empty:
-            st.success(f"🎉 ¡Todo pagado en {mes}/{anio}!")
+            st.markdown("<div style='text-align:center; padding: 40px; color:#94a3b8;'>Todo el equipo ha cobrado este mes.</div>", unsafe_allow_html=True)
         else:
-            df["Total"] = df["base"] + (df["progs"] * df["val_prog"]) + df["extras"] - df["adelantos"]
-            
             for _, row in df.iterrows():
+                total = row['base'] + (row['progs'] * row['val_prog']) + row['extras'] - row['adelantos']
+                if total <= 0: continue # No mostrar si no hay nada que pagar
+                
                 with st.container():
-                    col_info, col_btn = st.columns([3, 1])
-                    with col_info:
-                        st.markdown(f"""
-                        **{row['nombre']}** ({row['rol']})  
-                        Base: {format_ars(row['base'])} | Progs: {row['progs']} ({format_ars(row['progs']*row['val_prog'])}) | Extras: {format_ars(row['extras'])} | Adelantos: -{format_ars(row['adelantos'])}
-                        #### TOTAL: {format_ars(row['Total'])}
-                        """)
-                    with col_btn:
-                        st.write("##")
-                        if st.button(f"Confirmar Pago", key=f"pay_{row['staff_id']}"):
-                            run_query("""
-                                INSERT INTO pagos_sueldos (staff_id, mes, anio, monto_pagado, fecha_pago) 
-                                VALUES (%s, %s, %s, %s, %s)
-                            """, (row['staff_id'], mes, anio, row['Total'], date.today()), is_select=False)
-                            st.success(f"Pago registrado para {row['nombre']}")
-                            st.rerun()
-                    st.markdown("---")
+                    st.markdown(f"""
+                        <div class="salary-card pending">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <div style="color:white; font-size:1.2rem; font-weight:600;">{row['nombre']}</div>
+                                    <div style="color:var(--indigo); font-size:0.8rem; font-weight:600; text-transform:uppercase;">{row['rol']}</div>
+                                    <div style="margin-top:8px; color:var(--slate-400); font-size:0.9rem;">
+                                        Base: {format_ars(row['base'])} • 
+                                        Progs: {int(row['progs'])} • 
+                                        Extras: {format_ars(row['extras'])} • 
+                                        Adelantos: -{format_ars(row['adelantos'])}
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="color:var(--slate-400); font-size:0.8rem;">TOTAL A PAGAR</div>
+                                    <div class="salary-total">{format_ars(total)}</div>
+                                </div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    if st.button(f"Confirmar Pago para {row['nombre']}", key=f"p_{row['staff_id']}"):
+                        run_query("INSERT INTO pagos_sueldos (staff_id, mes, anio, monto_pagado, fecha_pago) VALUES (%s, %s, %s, %s, %s)", 
+                                  (row['staff_id'], mes, anio, total, date.today()), is_select=False)
+                        st.balloons()
+                        st.rerun()
 
-    with tab_historial:
-        hist_query = """
-            SELECT s.nombre, s.rol, p.monto_pagado, p.fecha_pago 
-            FROM pagos_sueldos p 
-            JOIN staff s ON p.staff_id = s.id 
-            WHERE p.mes = %s AND p.anio = %s
-            ORDER BY p.fecha_pago DESC
-        """
-        df_hist = run_query(hist_query, (mes, anio))
-        if df_hist.empty:
-            st.info("No hay registros de pagos para este mes.")
+    with t_hist:
+        df_hist = run_query("SELECT s.nombre, s.rol, p.monto_pagado, p.fecha_pago FROM pagos_sueldos p JOIN staff s ON p.staff_id = s.id WHERE p.mes = %s AND p.anio = %s ORDER BY p.fecha_pago DESC", (mes, anio))
+        if not df_hist.empty:
+            st.dataframe(df_hist.style.format({'monto_pagado': '$ {:,.2f}'}), use_container_width=True, hide_index=True)
         else:
-            st.dataframe(df_hist.style.format({'monto_pagado': '$ {:,.2f}'}), use_container_width=True)
+            st.write("Sin registros en este periodo.")
 
 # --- MODULO CONFIGURACIÓN ---
 def mod_config():
-    st.markdown("<h1>⚙️ Configuración</h1>", unsafe_allow_html=True)
+    st.markdown("<h2>⚙️ Configuración</h2>", unsafe_allow_html=True)
     t1, t2, t3, t4 = st.tabs(["👤 Staff", "📺 Emisiones", "🤝 Sponsors", "🏠 Gastos"])
     
     with t1:
         with st.form("f_staff", clear_on_submit=True):
-            st.write("### Alta Staff")
+            st.write("### Miembro")
             c1, c2 = st.columns(2)
-            nom = c1.text_input("Nombre")
-            rol = c2.text_input("Rol")
-            base = c1.number_input("Sueldo Base ($)", min_value=0)
-            pp = c2.number_input("Pago por Programa ($)", min_value=0)
-            if st.form_submit_button("Guardar"):
+            nom, rol = c1.text_input("Nombre"), c2.text_input("Rol")
+            base, pp = c1.number_input("Sueldo Base ($)", min_value=0), c2.number_input("Pago x Prog ($)", min_value=0)
+            if st.form_submit_button("Añadir"):
                 run_query("INSERT INTO staff (nombre, rol, sueldo_base, pago_por_programa) VALUES (%s, %s, %s, %s)", (nom, rol, base, pp), is_select=False)
-                st.success("Cargado.")
+                st.rerun()
+        st.dataframe(run_query("SELECT nombre, rol, sueldo_base, pago_por_programa FROM staff WHERE activo=TRUE"), use_container_width=True, hide_index=True)
 
     with t2:
         with st.form("f_em", clear_on_submit=True):
             st.write("### Nueva Emisión")
-            col1, col2 = st.columns(2)
-            f = col1.date_input("Fecha", date.today())
-            t = col2.text_input("Título Episodio")
+            c1, c2 = st.columns(2)
+            f, t = c1.date_input("Fecha", date.today()), c2.text_input("Título")
             e = st.selectbox("Estado", ["FINALIZADO", "PROGRAMADO", "EN_VIVO"])
-            if st.form_submit_button("Crear Programa"):
+            if st.form_submit_button("Crear"):
                 run_query("INSERT INTO emisiones (fecha, titulo_episodio, estado) VALUES (%s, %s, %s)", (f, t, e), is_select=False)
-                st.success("Creado.")
+                st.rerun()
+
+    with t3:
+        with st.form("f_sp", clear_on_submit=True):
+            st.write("### Sponsor")
+            emp, mon = st.text_input("Empresa"), st.number_input("Monto ($)", min_value=0)
+            if st.form_submit_button("Cargar"):
+                run_query("INSERT INTO ingresos_sponsors (nombre_empresa, tipo, monto, fecha) VALUES (%s, 'Sponsor', %s, %s)", (emp, mon, date.today()), is_select=False)
+                st.rerun()
 
     with t4:
-        with st.form("f_ga_fi", clear_on_submit=True):
-            st.write("### Cargar Gasto Fijo")
-            c1, c2 = st.columns(2)
-            mon = c1.number_input("Monto ($)", min_value=0)
-            desc = c2.text_input("Descripción")
-            if st.form_submit_button("Guardar Gasto"):
-                run_query("INSERT INTO gastos_operativos (monto, fecha, descripcion, categoria) VALUES (%s, %s, %s, 'Fijo')", (mon, date.today(), desc), is_select=False)
-                st.success("Gasto guardado.")
+        with st.form("f_extra", clear_on_submit=True):
+            st.write("### Bono / Adelanto")
+            staff = run_query("SELECT id, nombre FROM staff WHERE activo=TRUE")
+            sid = st.selectbox("Personal", staff['id'], format_func=lambda x: staff[staff['id']==x]['nombre'].values[0])
+            cat = st.selectbox("Tipo", ["VIÁTICOS", "BONOS", "ADELANTOS"])
+            mon = st.number_input("Monto ($)", min_value=0)
+            if st.form_submit_button("Registrar"):
+                run_query("INSERT INTO gastos_extras (staff_id, monto, fecha, categoria) VALUES (%s, %s, %s, %s)", (sid, mon, date.today(), cat), is_select=False)
+                st.rerun()
 
 # --- MAIN ---
 def main():
-    init_db()
+    # Inicialización de la base (Asegura tabla pagos_sueldos)
+    run_query("""CREATE TABLE IF NOT EXISTS pagos_sueldos (
+        id SERIAL PRIMARY KEY, staff_id INTEGER REFERENCES staff(id), 
+        mes INTEGER, anio INTEGER, monto_pagado NUMERIC, fecha_pago DATE, UNIQUE(staff_id, mes, anio)
+    );""", is_select=False)
+    
     if not check_auth(): return
+    
     with st.sidebar:
-        st.markdown("<h2 style='text-align:center;'>🎙️ BAMBA ADMIN</h2>", unsafe_allow_html=True)
-        menu = st.radio("Menú", ["📊 Dashboard", "📋 Asistencia", "💰 Sueldos", "⚙️ Configuración"])
-        if st.button("🔒 Cerrar Sesión"): st.session_state.auth = False; st.rerun()
-
-    if menu == "📊 Dashboard": mod_dashboard()
-    elif menu == "📋 Asistencia": mod_asistencia()
-    elif menu == "💰 Sueldos": mod_sueldos()
-    elif menu == "⚙️ Configuración": mod_config()
-
-if __name__ == "__main__":
-    main()
+        st.markdown("<h2 style='text-align:center;'>🎙️ BAMB
